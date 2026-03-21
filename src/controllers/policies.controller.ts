@@ -2,11 +2,12 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { KeycloakService } from '../keycloak/keycloak.service';
 import { CreatePolicyDto } from './dto/authorization.dto';
+import { Logic } from '@keycloak/keycloak-admin-client/lib/defs/policyRepresentation';
 
 @ApiTags('Client Policies (Authorization)')
 @Controller('clients/:clientId/policies')
 export class PoliciesController {
-  constructor(private readonly keycloak: KeycloakService) {}
+  constructor(private readonly keycloak: KeycloakService) { }
 
   @Get()
   @ApiOperation({ summary: 'List all authorization policies for a client' })
@@ -38,13 +39,23 @@ export class PoliciesController {
     @Param('clientId') clientId: string,
     @Body() createPolicyDto: CreatePolicyDto,
   ) {
-    // Note: createPolicy takes `{ id, type }` where type is the policy type (e.g., 'role', 'user')
-    const type = createPolicyDto.type;
+    const { type, name, description, logic, roles } = createPolicyDto;
+
     return this.keycloak.clients.createPolicy(
       { id: clientId, type: type },
-      createPolicyDto,
+      {
+
+        name,
+        description,
+        logic: logic === "NEGATIVE" ? Logic.NEGATIVE : Logic.POSITIVE,
+        roles: roles?.map((roleId) => ({
+          id: roleId,
+          required: true,
+        })),
+      },
     );
   }
+
 
   @Put(':policyId')
   @ApiOperation({ summary: 'Update an authorization policy for a client' })
@@ -59,7 +70,15 @@ export class PoliciesController {
   ) {
     return this.keycloak.clients.updatePolicy(
       { id: clientId, type: updateDto.type, policyId: policyId },
-      updateDto,
+      {
+        name: updateDto.name,
+        description: updateDto.description,
+        logic: updateDto.logic === "NEGATIVE" ? Logic.NEGATIVE : Logic.POSITIVE,
+        roles: updateDto.roles?.map((roleId) => ({
+          id: roleId,
+          required: true,
+        })),
+      },
     );
   }
 
@@ -74,6 +93,6 @@ export class PoliciesController {
     @Param('policyId') policyId: string,
     @Query('type') type: string,
   ) {
-    return this.keycloak.clients.delPolicy({ id: clientId, type: type, policyId: policyId });
+    return this.keycloak.clients.delPolicy({ id: clientId, policyId: policyId });
   }
 }

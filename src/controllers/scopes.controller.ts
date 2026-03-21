@@ -13,7 +13,7 @@ export class ScopesController {
   @ApiParam({ name: 'clientId', description: 'Internal ID of the client' })
   @ApiResponse({ status: 200, description: 'List of scopes.' })
   async findAll(@Param('clientId') clientId: string) {
-    return this.keycloak.scopes.find({ id: clientId });
+    return this.keycloak.clients.listAllScopes({ id: clientId });
   }
 
   @Get(':scopeId')
@@ -25,7 +25,7 @@ export class ScopesController {
     @Param('clientId') clientId: string,
     @Param('scopeId') scopeId: string,
   ) {
-    const scopes = await this.keycloak.clients.listScopes({ id: clientId, scopeId: scopeId } as any);
+    const scopes = await this.keycloak.clients.listAllScopes({ id: clientId, scopeId: scopeId } as any);
     return scopes.length > 0 ? scopes[0] : null;
   }
 
@@ -49,7 +49,6 @@ export class ScopesController {
   @ApiParam({ name: 'clientId', description: 'Internal ID of the client' })
   @ApiParam({ name: 'scopeId', description: 'Internal ID of the scope' })
   @ApiBody({ type: CreateScopeDto })
-  @ApiResponse({ status: 200, description: 'Scope updated successfully.' })
   async update(
     @Param('clientId') clientId: string,
     @Param('scopeId') scopeId: string,

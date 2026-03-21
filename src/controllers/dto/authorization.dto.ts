@@ -1,50 +1,40 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
-export class CreateResourceDto {
-  @ApiProperty({ description: 'Name of the resource' })
-  name: string;
-
-  @ApiPropertyOptional({ description: 'Display name of the resource' })
-  displayName?: string;
-
-  @ApiPropertyOptional({ description: 'Array of URIs for the resource', type: [String] })
-  uris?: string[];
-
-  @ApiProperty({ description: 'Type of the resource' })
-  type: string;
-
-  @ApiPropertyOptional({ description: 'Owner of the resource' })
-  ownerManagedAccess?: boolean;
-
-  @ApiPropertyOptional({
-    description: 'Scopes associated with the resource',
-    type: [Object],
-  })
-  scopes?: any[];
-}
+import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString, IsBooleanString } from 'class-validator';
 
 export class CreateScopeDto {
   @ApiProperty({ description: 'Name of the scope' })
+  @IsNotEmpty()
+  @IsString()
   name: string;
 
   @ApiPropertyOptional({ description: 'Display name of the scope' })
+  @IsOptional()
+  @IsString()
   displayName?: string;
 
   @ApiPropertyOptional({ description: 'Icon URI for the scope' })
+  @IsOptional()
+  @IsString()
   iconUri?: string;
 }
 
 export class CreatePolicyDto {
   @ApiProperty({ description: 'Name of the policy' })
+  @IsNotEmpty()
+  @IsString()
   name: string;
 
   @ApiPropertyOptional({ description: 'Description of the policy' })
+  @IsOptional()
+  @IsString()
   description?: string;
 
   @ApiProperty({
     description: 'Type of the policy (e.g., role, user, time, client)',
     example: 'role',
   })
+  @IsNotEmpty()
+  @IsString()
   type: string;
 
   @ApiProperty({
@@ -52,82 +42,58 @@ export class CreatePolicyDto {
     enum: ['POSITIVE', 'NEGATIVE'],
     default: 'POSITIVE',
   })
+  @IsEnum(['POSITIVE', 'NEGATIVE'])
   logic: 'POSITIVE' | 'NEGATIVE';
 
   @ApiPropertyOptional({
-    description: 'Additional configuration for the policy (e.g., roles assigned to a role policy)',
-    type: Object,
+    description: 'Roles associated with this policy',
+    type: [String],
   })
-  config?: any;
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  roles?: string[];
 }
 
-export class CreatePermissionDto {
-  @ApiProperty({ description: 'Name of the permission' })
-  name: string;
-
-  @ApiPropertyOptional({ description: 'Description of the permission' })
-  description?: string;
-
-  @ApiProperty({
-    description: 'Type of the permission (resource or scope)',
-    enum: ['resource', 'scope'],
-  })
-  type: 'resource' | 'scope';
-
-  @ApiProperty({
-    description: 'Logic of the permission (POSITIVE or NEGATIVE)',
-    enum: ['POSITIVE', 'NEGATIVE'],
-    default: 'POSITIVE',
-  })
-  logic: 'POSITIVE' | 'NEGATIVE';
-
-  @ApiProperty({ description: 'Decision strategy (UNANIMOUS, AFFIRMATIVE, CONSENSUS)' })
-  decisionStrategy: 'UNANIMOUS' | 'AFFIRMATIVE' | 'CONSENSUS';
-
-  @ApiPropertyOptional({
-    description: 'Resources associated with this permission (if type is resource)',
-    type: [String],
-  })
-  resources?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Scopes associated with this permission',
-    type: [String],
-  })
-  scopes?: string[];
-
-  @ApiProperty({
-    description: 'Policies assigned to evaluate this permission',
-    type: [String],
-  })
-  policies: string[];
-}
 
 export class AssignPermissionToRoleDto {
   @ApiProperty({ description: 'The ID of the client role' })
+  @IsNotEmpty()
+  @IsString()
   roleId: string;
 
   @ApiProperty({ description: 'Name of the newly generated policy' })
+  @IsNotEmpty()
+  @IsString()
   policyName: string;
 
   @ApiProperty({ description: 'Name of the permission to wrap it into' })
+  @IsNotEmpty()
+  @IsString()
   permissionName: string;
 
   @ApiProperty({
     description: 'Permission type to create (resource or scope)',
     enum: ['resource', 'scope'],
   })
+  @IsEnum(['resource', 'scope'])
   permissionType: 'resource' | 'scope';
 
   @ApiPropertyOptional({
     description: 'Resources to protect (required if type is resource)',
     type: [String],
   })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   resources?: string[];
 
   @ApiPropertyOptional({
     description: 'Scopes to protect',
     type: [String],
   })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   scopes?: string[];
 }

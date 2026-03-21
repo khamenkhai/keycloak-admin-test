@@ -1,6 +1,8 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import KeycloakAdminClient from '@keycloak/keycloak-admin-client';
+import { Clients } from '@keycloak/keycloak-admin-client/lib/resources/clients';
+import { Users } from '@keycloak/keycloak-admin-client/lib/resources/users';
 
 @Injectable()
 export class KeycloakService implements OnModuleInit {
@@ -17,16 +19,13 @@ export class KeycloakService implements OnModuleInit {
 
 
   // Getters for proxy-wrapped resources that automatically inject the target realm
-  get users() { return this.getResourceWithRealm(this.client.users); }
+  get users(): Users { return this.getResourceWithRealm(this.client.users); }
   get realms() { return this.getResourceWithRealm(this.client.realms); }
-  get clients() { return this.getResourceWithRealm(this.client.clients); }
+  get clients(): Clients { return this.getResourceWithRealm(this.client.clients); }
   get groups() { return this.getResourceWithRealm(this.client.groups); }
   get roles() { return this.getResourceWithRealm(this.client.roles); }
-  get scopes() { return this.getResourceWithRealm(this.client.scope); }
+  // get scopes() { return this.getResourceWithRealm(this.client.scope); }
 
-  //  test(){
-  //   return this.scopes
-  // }
 
   private getResourceWithRealm(resource: any) {
     const targetRealm = this.configService.get<string>('KEYCLOAK_REALM');

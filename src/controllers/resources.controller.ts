@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { KeycloakService } from '../keycloak/keycloak.service';
-import { CreateResourceDto } from './dto/authorization.dto';
+import { CreateResourceDto } from './dto/resource.dto';
 
 @ApiTags('Client Resources')
 @Controller('clients/:clientId/resources')
 export class ResourcesController {
-  constructor(private readonly keycloak: KeycloakService) {}
+  constructor(private readonly keycloak: KeycloakService) { }
 
   @Get()
   @ApiOperation({ summary: 'List all resources for a client' })
@@ -47,7 +47,14 @@ export class ResourcesController {
   ) {
     return this.keycloak.clients.createResource(
       { id: clientId },
-      createResourceDto,
+      {
+        name: createResourceDto.name,
+        displayName: createResourceDto.displayName,
+        type: createResourceDto.type,
+        ownerManagedAccess: createResourceDto.ownerManagedAccess || true,
+        scopes: createResourceDto.scopes,
+        uris: createResourceDto.uris,
+      },
     );
   }
 
