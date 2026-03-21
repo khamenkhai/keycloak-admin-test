@@ -1,0 +1,96 @@
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import KeycloakAdminClient from '@keycloak/keycloak-admin-client';
+
+@Injectable()
+export class KeycloakService implements OnModuleInit {
+  private readonly logger = new Logger(KeycloakService.name);
+  public client: KeycloakAdminClient;
+
+  constructor(private readonly configService: ConfigService) {
+    // Initialize with the auth realm (master) to ensure token refresh works correctly
+    this.client = new KeycloakAdminClient({
+      baseUrl: this.configService.get<string>('KEYCLOAK_BASE_URL'),
+      realmName: this.configService.get<string>('KEYCLOAK_AUTH_REALM', 'master'),
+    });
+  }
+
+
+  // Getters for proxy-wrapped resources that automatically inject the target realm
+  get users() { return this.getResourceWithRealm(this.client.users); }
+  get realms() { return this.getResourceWithRealm(this.client.realms); }
+  get clients() { return this.getResourceWithRealm(this.client.clients); }
+  get groups() { return this.getResourceWithRealm(this.client.groups); }
+  get roles() { return this.getResourceWithRealm(this.client.roles); }
+  get scopes() { return this.getResourceWithRealm(this.client.scope); }
+
+  //  test(){
+  //   return this.scopes
+  // }
+
+  private getResourceWithRealm(resource: any) {
+    const targetRealm = this.configService.get<string>('KEYCLOAK_REALM');
+    return new Proxy(resource, {
+      get: (target, prop) => {
+        const original = target[prop];
+        if (typeof original === 'function') {
+          return (...args: any[]) => {
+            // Inject realm into the first argument (payload) if it's an object
+            const payload = args[0] || {};
+            if (typeof payload === 'object' && !payload.realm) {
+              payload.realm = targetRealm;
+            }
+            return original.apply(target, [payload, ...args.slice(1)]);
+          };
+        }
+        return original;
+      },
+    });
+  }
+
+  async getClient() {
+    await this.authenticate();
+    return this.client;
+  }
+
+  async onModuleInit() {
+    await this.authenticate();
+  }
+
+  private async authenticate() {
+    try {
+      const grantType = this.configService.get<string>('KEYCLOAK_GRANT_TYPE', 'password');
+      const clientId = this.configService.get<string>('KEYCLOAK_CLIENT_ID', 'admin-cli');
+      const clientSecret = this.configService.get<string>('KEYCLOAK_CLIENT_SECRET');
+      const authRealm = this.configService.get<string>('KEYCLOAK_AUTH_REALM', 'master');
+
+      if (grantType === 'password') {
+        await this.client.auth({
+          username: this.configService.get<string>('KEYCLOAK_USERNAME'),
+          password: this.configService.get<string>('KEYCLOAK_PASSWORD'),
+          grantType: 'password',
+          clientId: clientId,
+          clientSecret: clientSecret,
+        });
+        this.logger.log(`Authenticated to Keycloak using password grant on realm ${authRealm}`);
+      } else {
+        await this.client.auth({
+          grantType: 'client_credentials',
+          clientId: clientId,
+          clientSecret: clientSecret,
+        });
+        this.logger.log(`Authenticated to Keycloak using client_credentials grant on realm ${authRealm}`);
+      }
+
+      if (!this.client.accessToken) {
+        throw new Error('Access token is missing after authentication');
+      }
+    } catch (error) {
+      this.logger.error(`Failed to authenticate with Keycloak: ${error.message}`);
+    }
+  }
+
+  // Refresh token helper or periodic re-auth if needed
+  // Note: The client handles tokens, but session might expire.
+  // For long running processes, you might need to re-auth occasionally.
+}
