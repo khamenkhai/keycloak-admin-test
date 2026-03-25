@@ -11,7 +11,6 @@ export class UsersController {
   @Get()
   @ApiOperation({ summary: 'Get all users' })
   async findAll(@Query('first') first?: number, @Query('max') max?: number) {
-    // find() payload matches UserQuery interface from your docs
     return this.keycloak.users.find({ first, max });
   }
 
@@ -64,8 +63,7 @@ export class UsersController {
   async addClientRoleMappings(
     @Body() dto: AssignClientRolesDto,
   ) {
-    // We map our custom DTO names back to what Keycloak expects
-    return this.keycloak.users.addClientRoleMappings({
+    const response = await this.keycloak.users.addClientRoleMappings({
       id: dto.userId,
       clientUniqueId: dto.clientUuid,
       roles: dto.roles.map(role => ({
@@ -73,6 +71,19 @@ export class UsersController {
         name: role.roleName
       }))
     });
+
+    const manualResponse = {
+      status: 'success',
+      message: 'Roles mapped successfully! 🎊',
+      timestamp: new Date().toISOString(),
+      details: {
+        targetUser: dto.userId,
+        targetClient: dto.clientUuid,
+        rolesAdded: dto.roles.map(r => r.roleName)
+      }
+    };
+
+    return manualResponse;
   }
 
   @Delete(':userId/role-mappings/clients/:clientUuid')
@@ -83,10 +94,26 @@ export class UsersController {
     @Param('clientUuid') clientUniqueId: string,
     @Body() roles: UserRoleMappingDto[],
   ) {
-    /// *** need to fix
-    // return this.keycloak.users.delClientRoleMappings({
-    //   id,
-    //   clientUniqueId,
-    // });
+    const data = await this.keycloak.users.delClientRoleMappings({
+      id: id,
+      clientUniqueId: clientUniqueId,
+      roles: roles.map(role => ({
+        id: role.roleId,
+        name: role.roleName
+      }))
+    });
+
+    const auditResponse = {
+      status: 'removed',
+      message: 'Roles detached successfully 💨',
+      target: {
+        user: id,
+        client: clientUniqueId
+      },
+      removedRoles: roles.map(r => r.roleName),
+      timestamp: new Date().toISOString()
+    };
+
+    return auditResponse;
   }
 }

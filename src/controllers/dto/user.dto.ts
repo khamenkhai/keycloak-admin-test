@@ -38,7 +38,7 @@ export class UserRoleMappingDto {
     })
     @IsNotEmpty()
     @IsString()
-    roleId: string; // Changed from 'id' to 'roleId' for better DX
+    roleId: string;
 
     @ApiProperty({
         example: 'admin',
@@ -46,7 +46,7 @@ export class UserRoleMappingDto {
     })
     @IsNotEmpty()
     @IsString()
-    roleName: string; // Changed from 'name' to 'roleName' for better DX
+    roleName: string;
 }
 
 export class AssignClientRolesDto {
